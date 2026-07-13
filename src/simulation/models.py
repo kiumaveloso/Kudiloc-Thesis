@@ -25,9 +25,21 @@ class ATM:
             (True = stocked / has cash, False = empty / out of service).
             This value is known to the simulator but NOT visible to the
             aggregation algorithms — they only ever see Reports.
+        flip_time: If this ATM's state changed partway through the
+            report-generation window, the simulated time at which the
+            change occurred. None means the ATM never changed state
+            during the window (true_state held throughout the run).
+        pre_flip_state: The ATM's state BEFORE flip_time, only
+            meaningful when flip_time is not None. Reports timestamped
+            before flip_time are checked against this value; reports
+            at or after flip_time are checked against true_state. This
+            makes staleness a genuine per-report property instead of
+            an instantaneous, timestamp-blind toggle on the whole ATM.
     """
     atm_id: str
     true_state: bool
+    flip_time: float | None = None
+    pre_flip_state: bool | None = None
 
 
 @dataclass
