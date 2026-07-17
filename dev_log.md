@@ -78,3 +78,73 @@ reputation per correct/incorrect report).
   over many seeds before treating a difference as real; a single seed
   can flip direction entirely (observed -2% to +4% swing pre-fix on
   what turned out to be pure noise).
+
+## Day 3 — Phase 2 close-out
+- Implemented ReputationWeightedAggregation (src/algorithms/reputation_weighted.py)
+  and the cross-ATM reputation update logic (src/simulation/reputation.py),
+  per the Day 2 design decision: global reputation, multiplicative
+  reward/penalty (1.1 / 0.9), clamped to [0.01, 10.0], updated via
+  fixed-interval ground-truth reveals.
+- Implemented TimeDecayedTrustScoring (src/algorithms/time_decayed.py):
+  weight = reputation * e^(-lambda * age), lambda derived from a 12-hour
+  half-life (lambda = ln(2)/12 ~= 0.0578). One simulated time unit is
+  treated as one hour, a modeling assumption chosen to reflect realistic
+  ATM cash-availability volatility in the Angola crowd-sourcing context
+  (documented as an assumption, not an empirical constant).
+- **Staleness bug found and fixed**: the original maybe_flip_states()
+  applies an instantaneous, timestamp-blind flip to an ATM's true_state,
+  so every report for a flipped ATM becomes equally right/wrong
+  regardless of when it was submitted. This eliminated the
+  recency-correctness gradient Time-Decayed is designed to exploit,
+  confirmed when a naive staleness sanity check produced a weak,
+  inconsistent result (+4%, sometimes even negative) that vanished under
+  proper multi-seed averaging (~+1%, statistical noise).
+  Root cause traced and fixed by adding flip_time / pre_flip_state
+  fields to ATM, a generate_flip_times() function that assigns each
+  flipping ATM an explicit moment of change within the report window,
+  and a true_state_at(atm, timestamp) lookup. report_stream.py was
+  updated to check each report's truth against its own timestamp instead
+  of a single static true_state.
+- Sanity check results (single seed, seed=42/7):
+    Majority Vote (adversarial=0.6):        14.00%
+    Reputation-Weighted (adversarial=0.6):  84.00%  (+70.00 pts vs MV)
+    Reputation-Weighted (stale scenario):   62.00%
+    Time-Decayed (stale scenario):          84.00%  (+22.00 pts vs RW)
+  30-seed averaged staleness check (flip_prob=0.5, adversarial=0.0,
+  isolating pure staleness from adversarial noise): RW 79.53% vs
+  TD 88.93% (+9.40 pts) — confirms the effect is real and not seed luck.
+- All three algorithms (MajorityVote, ReputationWeightedAggregation,
+  TimeDecayedTrustScoring) run through compute_accuracy() unchanged,
+  validating the shared AggregationAlgorithm interface design.
+- Lesson for methodology chapter: always average comparative results
+  over many seeds before treating a difference as real; a single seed
+  can flip direction entirely (observed -2% to +4% swing pre-fix on
+  what turned out to be pure noise).
+
+## Day 4 — Phase 3: RQ2/RQ3 sweeps
+- Built experiments/common.py (shared run_periodic_reveals helper, used
+  by both sweep scripts to avoid duplicating Phase 2 logic).
+- RQ2 sweep (experiments/run_adversarial_sweep.py): adversarial_fraction
+  from 0.0 to 0.8 (9 points), 30 seeds each, no staleness. Results in
+  results/adversarial_sweep.csv.
+    Key finding: Majority Vote collapses from 98.5% to 1.2% accuracy as
+    adversarial_fraction rises; Reputation-Weighted stays robust down to
+    73.3% even at 80% adversarial reporters. Time-Decayed consistently
+    trails Reputation-Weighted slightly in this sweep (e.g. 89.5% vs
+    94.9% at fraction=0.5) — expected, since decay adds noise by
+    down-weighting valid recent reports when nothing is actually stale.
+- RQ3 sweep (experiments/run_staleness_sweep.py): flip_probability from
+  0.0 to 0.8 (9 points), 30 seeds each, adversarial_fraction fixed at 0
+  to isolate staleness cleanly. Uses generate_flip_times() (not the
+  timestamp-blind maybe_flip_states()) for genuine per-report staleness.
+  Results in results/staleness_sweep.csv.
+    Key finding: clean crossover pattern. At flip_probability=0.0,
+    Reputation-Weighted slightly beats Time-Decayed (99.5% vs 97.1%,
+    consistent with the RQ2 finding above). Time-Decayed overtakes
+    around flip_probability~0.1-0.2 and the gap widens steadily,
+    reaching +16.1 pts (80.3% vs 64.2%) at flip_probability=0.8.
+- Still open for Phase 3: add standard deviation / confidence intervals
+  to sweep output (currently means only); generate figures from the CSV
+  data; consider a half-life sensitivity check (6h/12h/24h) as a
+  robustness argument; write Results chapter text around this data.
+dev_log.md updatedcat
