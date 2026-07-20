@@ -148,3 +148,16 @@ reputation per correct/incorrect report).
   data; consider a half-life sensitivity check (6h/12h/24h) as a
   robustness argument; write Results chapter text around this data.
 dev_log.md updatedcat
+
+## Day 4 (cont.) — Added confidence intervals to sweeps
+- Added summarize() helper to experiments/common.py: mean, sample std,
+  and 95% CI half-width (normal approximation, 1.96 * SE — reasonable at
+  n=30, avoids a scipy dependency; noted as a simplification).
+- Both sweep scripts now print mean±CI and write a *_summary.csv
+  alongside the raw per-seed CSV (results/adversarial_sweep_summary.csv,
+  results/staleness_sweep_summary.csv).
+- CIs sharpen the RQ3 story: at flip_probability=0.1 the RW and TD
+  intervals overlap (95.13%±0.95% vs 94.67%±1.19%, not distinguishable);
+  by flip_probability=0.2 they separate cleanly (91.00%±0.99% vs
+  93.20%±1.12%). So Time-Decayed's advantage becomes statistically
+  significant once ~20% of ATMs change state during the report window.

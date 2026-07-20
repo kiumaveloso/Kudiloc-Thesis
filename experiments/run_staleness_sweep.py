@@ -30,7 +30,6 @@ Design notes (see dev_log.md for full justification):
 """
 
 import csv
-import statistics
 
 from src.algorithms.majority_vote import MajorityVote
 from src.algorithms.reputation_weighted import ReputationWeightedAggregation
@@ -40,7 +39,7 @@ from src.simulation.ground_truth import generate_atms, generate_flip_times
 from src.simulation.report_stream import generate_reports
 from src.simulation.reporters import generate_reporters
 
-from experiments.common import run_periodic_reveals
+from experiments.common import run_periodic_reveals, summarize
 
 NUM_ATMS = 50
 NUM_REPORTERS = 30
@@ -52,6 +51,7 @@ NUM_SEEDS = 30
 BASE_SEED = 2000  # offset so these seeds don't collide with other sweeps
 
 OUTPUT_PATH = "results/staleness_sweep.csv"
+SUMMARY_OUTPUT_PATH = "results/staleness_sweep_summary.csv"
 
 
 def run_single_trial(flip_probability: float, seed: int) -> dict:
@@ -112,15 +112,19 @@ def run_sweep():
                 })
 
         summary[flip_probability] = {
-            algo_name: statistics.mean(values)
+            algo_name: summarize(values)
             for algo_name, values in accuracies.items()
         }
 
+        mv_stats = summary[flip_probability]["majority_vote"]
+        rw_stats = summary[flip_probability]["reputation_weighted"]
+        td_stats = summary[flip_probability]["time_decayed"]
+
         print(
             f"flip_probability={flip_probability:.1f}  "
-            f"MV={summary[flip_probability]['majority_vote']:.2%}  "
-            f"RW={summary[flip_probability]['reputation_weighted']:.2%}  "
-            f"TD={summary[flip_probability]['time_decayed']:.2%}"
+            f"MV={mv_stats['mean']:.2%}±{mv_stats['ci95_halfwidth']:.2%}  "
+            f"RW={rw_stats['mean']:.2%}±{rw_stats['ci95_halfwidth']:.2%}  "
+            f"TD={td_stats['mean']:.2%}±{td_stats['ci95_halfwidth']:.2%}"
         )
 
     with open(OUTPUT_PATH, "w", newline="") as f:
@@ -128,7 +132,27 @@ def run_sweep():
         writer.writeheader()
         writer.writerows(rows)
 
+    summary_rows = []
+    for flip_probability, algo_stats in summary.items():
+        for algo_name, stats in algo_stats.items():
+            summary_rows.append({
+                "flip_probability": flip_probability,
+                "algorithm": algo_name,
+                "mean_accuracy": stats["mean"],
+                "std_accuracy": stats["std"],
+                "ci95_halfwidth": stats["ci95_halfwidth"],
+                "n": stats["n"],
+            })
+
+    with open(SUMMARY_OUTPUT_PATH, "w", newline="") as f:
+        writer = csv.DictWriter(
+            f, fieldnames=["flip_probability", "algorithm", "mean_accuracy", "std_accuracy", "ci95_halfwidth", "n"]
+        )
+        writer.writeheader()
+        writer.writerows(summary_rows)
+
     print(f"\nWrote {len(rows)} rows to {OUTPUT_PATH}")
+    print(f"Wrote {len(summary_rows)} summary rows to {SUMMARY_OUTPUT_PATH}")
     return summary
 
 
