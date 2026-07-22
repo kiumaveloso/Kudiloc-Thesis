@@ -161,3 +161,31 @@ dev_log.md updatedcat
   by flip_probability=0.2 they separate cleanly (91.00%±0.99% vs
   93.20%±1.12%). So Time-Decayed's advantage becomes statistically
   significant once ~20% of ATMs change state during the report window.
+
+## Day 5 — Phase 3: half-life sensitivity check
+- Added experiments/run_halflife_sensitivity.py: reruns the RQ3 staleness
+  scenario at three half-lives (6h, 12h, 24h), 30 seeds per point,
+  reusing the same generated scenario across half-lives so any accuracy
+  difference is attributable to the decay rate alone. Reputation-Weighted
+  is computed once per scenario as a fixed reference (it has no decay
+  parameter). Output: results/halflife_sensitivity.csv
+- Result summary (mean accuracy, 30 seeds):
+    flip=0.0  RW=99.67%  TD@6h=92.93%  TD@12h=97.47%  TD@24h=99.20%
+    flip=0.2  RW=91.20%  TD@6h=89.93%  TD@12h=93.47%  TD@24h=93.80%
+    flip=0.4  RW=80.87%  TD@6h=86.40%  TD@12h=87.40%  TD@24h=86.60%
+    flip=0.6  RW=73.67%  TD@6h=85.00%  TD@12h=84.93%  TD@24h=81.47%
+    flip=0.8  RW=63.13%  TD@6h=81.80%  TD@12h=79.47%  TD@24h=74.27%
+- Robustness claim supported: Time-Decayed beats Reputation-Weighted at
+  ALL three half-lives once flip_probability >= 0.4, so the core RQ3
+  finding is not an artifact of the 12h choice.
+- Honest caveat to state in the thesis: the exact crossover point does
+  depend on the half-life. At flip=0.2, TD@6h (89.93%) slightly
+  underperforms RW (91.20%) while TD@12h and TD@24h both beat it. The
+  direction of the effect is stable; the threshold is not.
+- Secondary finding worth a sentence in Discussion: the optimal half-life
+  shifts with the rate of world change. Long half-life (24h) is best at
+  low staleness, short half-life (6h) is best at high staleness. This is
+  intuitive (forget faster when reality changes faster) and suggests
+  adaptive decay as future work.
+- Note: uses BASE_SEED=3000, distinct from the RQ3 sweep (2000), so RW
+  values differ slightly from the main staleness sweep by design.
