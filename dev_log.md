@@ -189,3 +189,27 @@ dev_log.md updatedcat
   adaptive decay as future work.
 - Note: uses BASE_SEED=3000, distinct from the RQ3 sweep (2000), so RW
   values differ slightly from the main staleness sweep by design.
+
+## Day 6 — Phase 3: report density sweep (RQ1) + floor effect found
+- Added experiments/run_density_sweep.py: sweeps report_probability
+  (0.02 to 0.50, ~0.6 to ~15 reports/ATM), adversarial_fraction fixed at
+  0.3 to keep the comparison discriminating (per proposal Section 6),
+  no staleness. 30 seeds/point. Closes the third independent variable
+  named in the proposal (report density) that had not yet been swept.
+- Result: with adversaries present, density helps Reputation-Weighted
+  dramatically (67.1% -> 99.6%) but barely helps Majority Vote
+  (65.7% -> 82.7%), since for MV each extra report is as likely to be
+  adversarial corruption as useful signal. Time-Decayed tracks between
+  them (65.5% -> 97.9%).
+- FLOOR EFFECT identified and now recorded: at very low density most ATMs
+  receive zero reports (55% at report_probability=0.02), and the shared
+  tie-break returns True (stocked). With initial_stocked_probability=0.7,
+  always answering "stocked" scores ~70% by construction, so the sparse
+  end of the curve measures the tie-break prior, not algorithm skill.
+  Added a zero_report_fraction column to both CSVs so this is visible in
+  the data. The curve becomes a genuine algorithm comparison from
+  report_probability>=0.10 (only 4% ATMs uncovered) onward.
+- To address in the thesis: report the zero-report fraction alongside
+  accuracy (done, in the CSV); note the floor as a limitation; consider
+  a coverage-conditioned accuracy metric (accuracy over ATMs with >=1
+  report) as future work / robustness.
