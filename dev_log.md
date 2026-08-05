@@ -213,3 +213,30 @@ dev_log.md updatedcat
   accuracy (done, in the CSV); note the floor as a limitation; consider
   a coverage-conditioned accuracy metric (accuracy over ATMs with >=1
   report) as future work / robustness.
+
+## Day 7 — Phase 3/4: paired significance tests
+- Added experiments/run_significance_tests.py: paired Wilcoxon
+  signed-rank tests on the raw per-seed CSVs of all three sweeps.
+  Justified as paired because all three algorithms run on the identical
+  per-seed scenario; Wilcoxon (non-parametric) chosen over paired t-test
+  to avoid assuming normal differences on bounded accuracy values.
+  Handles the all-zero-differences case (undefined Wilcoxon) explicitly.
+  Output: results/significance_tests.csv (78 rows).
+- RQ3 (staleness), TD vs RW, sign flips with staleness exactly as
+  predicted:
+    flip=0.0  -2.40%  p=6.4e-05  (TD significantly worse)
+    flip=0.1  -0.47%  p=0.19     (not significant: the crossover)
+    flip=0.2  +2.20%  p=1.0e-03  (TD significantly better)
+    flip=0.8 +16.07%  p=1.7e-06  (TD dominant)
+  Precise claim now supported: TD is significantly worse with no
+  staleness, indistinguishable at ~flip=0.1, and significantly better
+  from flip>=0.2 onward.
+- RQ2 (adversarial), RW vs MV significant at every fraction
+  (p ~1.7e-06). TD vs RW consistently negative and significant,
+  confirming TD's small cost when there is no staleness to justify decay.
+- RQ1 (density), TD vs RW significantly negative across the range, with
+  the penalty shrinking as density rises (-7.27% -> -1.73%) as more
+  reports dilute the noise decay introduces.
+- Honest note: at flip=0.0, RW vs MV is NOT significant (p=0.26). This is
+  correct (no staleness, no adversaries => genuinely equivalent) and
+  demonstrates the test is discriminating, not rubber-stamping.
