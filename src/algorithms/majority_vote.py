@@ -35,8 +35,14 @@ class MajorityVote(AggregationAlgorithm):
         methodological choice, not an arbitrary one — worth noting
         explicitly in the thesis methodology chapter.
         """
-        stocked_votes = sum(1 for r in reports if r.claimed_state)
-        empty_votes = sum(1 for r in reports if not r.claimed_state)
+        stocked_votes = 0
+        empty_votes = 0
+
+        for report in reports:
+            if report.claimed_state:
+                stocked_votes += 1
+            else:
+                empty_votes += 1
 
         if stocked_votes >= empty_votes:
             return True
