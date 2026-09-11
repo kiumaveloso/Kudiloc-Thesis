@@ -1,0 +1,16 @@
+adversarial_fraction,algorithm,mean_accuracy,n_seeds
+0.0,majority_vote,0.9919999999999999,30
+0.0,production_weighted,0.9933333333333334,30
+0.0,reputation_weighted,0.9966666666666666,30
+0.2,majority_vote,0.8946666666666666,30
+0.2,production_weighted,0.9666666666666667,30
+0.2,reputation_weighted,0.9866666666666667,30
+0.4,majority_vote,0.5633333333333332,30
+0.4,production_weighted,0.8480000000000001,30
+0.4,reputation_weighted,0.9706666666666666,30
+0.6,majority_vote,0.14800000000000002,30
+0.6,production_weighted,0.5146666666666666,30
+0.6,reputation_weighted,0.9026666666666666,30
+0.8,majority_vote,0.006666666666666667,30
+0.8,production_weighted,0.10800000000000001,30
+0.8,reputation_weighted,0.738,30
